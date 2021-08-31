@@ -327,6 +327,11 @@ int CConverter::GenerateTextures()
 
 	pList = m_pParser->GetEntries();
 	while(pList) {
+		if (strcasecmp(pList->GetTokenValue("mipmap","no"),"arbitrary")==0) {
+			// TODO: This doesn't actually handle doing multiple.  Whatever.
+			return GenerateTextureArbitraryMipmaps(pList);
+		}
+
 		pImg = GetImage(pList->GetTokenValue("filepath"),nRet);
 		if(!pImg || !nRet) {
 			fprintf(stderr,"error loading %s.\n",pList->GetTokenValue("filepath"));
@@ -367,6 +372,70 @@ int CConverter::GenerateTextures()
 		}
 
 		pList = pList->pNext;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+int CConverter::GenerateTextureArbitraryMipmaps(const CParser::_ttokenstringlist *pEntry)
+{
+	int nMinLOD = atoi(pEntry->GetTokenValue("minlod","0"));
+	int nMaxLOD = atoi(pEntry->GetTokenValue("maxlod","0"));
+
+	int nSizeX = atoi(pEntry->GetTokenValue("width","-1"));
+	int nSizeY = atoi(pEntry->GetTokenValue("height","-1"));
+
+	_tImage* pImage = NULL;
+
+	for (int lod = nMinLOD; lod <= nMaxLOD; lod++) {
+		char buffer[200];
+		// Performing formatting with a user-specified string;
+		// although terrible security issues can result from this, it doesn't really matter for this
+		snprintf(buffer, sizeof(buffer), pEntry->GetTokenValue("filepath"), lod);
+		int nRet;
+		CImage *pImg = GetImage(buffer, nRet);
+		if (!pImg || !nRet) {
+			fprintf(stderr,"error loading lod level %d from %s.\n", lod, buffer);
+			return EXIT_FAILURE;
+		}
+
+		if (pImage == NULL) {
+			if (nSizeX == -1) nSizeX = pImg->GetXSize();
+			if (nSizeY == -1) nSizeY = pImg->GetYSize();
+
+			if ((nSizeX >> nMaxLOD) == 0 || (nSizeY >> nMaxLOD) == 0) {
+				fprintf(stderr,"Image size %d, %d for lod level %d from %s too small, should be at least %d, %d.\n", nSizeX, nSizeY, lod, buffer, 1 << nMaxLOD, 1 << nMaxLOD);
+				return EXIT_FAILURE;
+			}
+
+			pImage = AddImage(pImg);
+
+			if (!CheckPow2(pImage)) {
+				fprintf(stderr,"Non-power-of-2 size %d, %d for lod level %d from %s.\n", nSizeX, nSizeY, lod, buffer);
+				return EXIT_FAILURE;
+			}
+
+			pImage->SetID(pEntry->GetTokenValue("id","0"));
+
+			int nColFmt = atoi(pEntry->GetTokenValue("colfmt","6"));
+			pImage->SetColorFmt(nColFmt);
+			switch(nColFmt) {
+				case TF_CI4:
+				case TF_CI8:
+					pImage->SetPaletteFmt(atoi(pEntry->GetTokenValue("palfmt","1")));
+					break;
+				default:
+					break;
+			}
+
+			pImage->SetLOD(nMinLOD,nMaxLOD,0);
+		}
+
+		int nDstWidth = nSizeX >> lod;
+		int nDstHeight = nSizeY >> lod;
+
+		_tLayer *pLayer = pImage->AddLayer(nDstWidth, nDstHeight);
+		pLayer->BoxFilter(pImg);
 	}
 
 	return EXIT_SUCCESS;

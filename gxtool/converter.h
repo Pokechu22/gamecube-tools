@@ -115,6 +115,7 @@ public:
 	int WriteTextures();
 	int GenerateTextures();
 	int GenerateTexture(CParser::_ttokenstringlist *pEntry);
+	int GenerateTextureArbitraryMipmaps(const CParser::_ttokenstringlist *pEntry);
 	void ReleaseAll();
 	_tImage* GetImages() const { return m_pImages; }
 	

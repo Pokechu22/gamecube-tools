@@ -129,7 +129,7 @@ int CParser::Parse(int argc,const char **argv)
 
 			if(strncasecmp(argv[arg],"colfmt=",7)==0) colfmt = argv[arg];
 			if(strncasecmp(argv[arg],"palfmt=",7)==0) palfmt = argv[arg];
-			else if(strncasecmp(argv[arg],"mipmap=yes",10)==0) {
+			else if(strncasecmp(argv[arg],"mipmap=yes",10)==0 || strncasecmp(argv[arg],"mipmap=arbitrary",10)==0) {
 				mipmap = argv[arg];
 				mipMap = true;
 			} else if(mipMap==true) {

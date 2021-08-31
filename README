@@ -1,0 +1,8 @@
+Dependencies: automake, libtool-bin, libfreeimage-dev
+
+To build:
+
+./autogen.sh
+mkdir build && cd build
+../configure
+make
